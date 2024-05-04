@@ -1,0 +1,135 @@
+Sub stocks():
+
+    Dim row As Long ' Row number
+    Dim cell_vol As LongLong ' Cell volume
+    Dim vol_total As LongLong ' Column M
+    Dim ticker As String ' Column J
+
+    Dim k As Long ' starting row
+    
+    Dim ticker_close As Double ' Contents of Column F
+    Dim ticker_open As Double ' Contents of Column C
+    Dim price_change As Double ' ticker_close - ticker_open
+    Dim percent_change As Double 'ticker_close / ticker_open
+    
+    Dim ws As Worksheet
+    
+    
+    Dim greatest_vol As LongLong
+    Dim greatest_percent As Double
+    Dim lowest_percent As Double
+    Dim greatest_vol_ticker As String
+    Dim greatest_ticker As String
+    Dim lowest_ticker As String
+    
+    For Each ws In ThisWorkbook.Worksheets
+    
+    Dim lastRow As Long ' asked the xpert
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
+
+    vol_total = 0
+    k = 2
+    
+    ' Write Leaderboard Columns
+    ws.Range("J1").Value = "Ticker"
+    ws.Range("K1").Value = "Quarterly Change"
+    ws.Range("L1").Value = "Percent Change"
+    ws.Range("M1").Value = "Volume"
+    ws.Range("P2").Value = "Greatest %"
+    ws.Range("P3").Value = "Lowest %"
+    ws.Range("P4").Value = "Greatest Vol"
+    
+    ' assign open for first ticker
+    ticker_open = ws.Cells(2, 3).Value
+
+    For row = 2 To lastRow:
+        cell_vol = ws.Cells(row, 7).Value
+        ticker = ws.Cells(row, 1).Value
+
+        ' loops rows 2 to last row
+        ' checks to see if ticker is different
+        ' if the same, then adds to the vol_total
+        ' if different, then we need add last row, write out to the leaderboard
+        ' reset the vol_total to 0
+
+        If (ws.Cells(row + 1, 1).Value <> ticker) Then
+            ' Swap when encountering a differnt ticker
+            vol_total = vol_total + cell_vol
+            
+            ' get the closing price of the ticker
+            ticker_close = ws.Cells(row, 6).Value
+            price_change = ticker_close - ticker_open
+            
+            ' Check if open price is 0 first - to protect from Kevin the Hacker
+            If (ticker_open > 0) Then
+                percent_change = price_change / ticker_open
+            Else
+                percent_change = 0
+            End If
+
+            ws.Cells(k, 10).Value = ticker
+            ws.Cells(k, 11).Value = price_change
+            ws.Cells(k, 12).Value = percent_change
+            ws.Cells(k, 13).Value = vol_total
+            
+            ' formatting
+            If (price_change > 0) Then
+                ws.Cells(k, 11).Interior.ColorIndex = 4 ' Green
+                ws.Cells(k, 12).Interior.ColorIndex = 4 ' Green
+            ElseIf (price_change < 0) Then
+                ws.Cells(k, 11).Interior.ColorIndex = 3 ' Red
+                ws.Cells(k, 12).Interior.ColorIndex = 3 ' Red
+            Else
+                ws.Cells(k, 11).Interior.ColorIndex = 2 ' White
+                ws.Cells(k, 12).Interior.ColorIndex = 2 ' White
+            End If
+            
+            'second leaderboard
+            If ticker = ws.Cells(2, 1).Value Then
+                greatest_vol = vol_total
+                greatest_percent = percent_change
+                lowest_percent = percent_change
+            Else
+                If vol_total > greatest_volume Then
+                    greatest_volume = vol_total
+                End If
+                
+                If percent_change > greatest_percent Then
+                    greatest_percent = percent_change
+                End If
+                
+                If percent_change < lowest_percent Then
+                    lowest_percent = percent_change
+                End If
+            End If
+            
+            ' reset
+            vol_total = 0
+            k = k + 1
+            ticker_open = ws.Cells(row + 1, 3).Value ' look ahead to get next ticker open
+        Else
+            ' we just add to the total
+            vol_total = vol_total + cell_vol
+        End If
+    Next row
+    
+    ' Style my leaderboard
+    ws.Columns("K:K").NumberFormat = "0.00%"
+    ws.Columns("I:L").AutoFit
+    
+    ' second leaderboard
+    ws.Range("R2").Value = greatest_percent
+    ws.Range("R3").Value = lowest_percent
+    ws.Range("R4").Value = greatest_vol
+    
+    
+Next ws
+End Sub
+
+Sub reset()
+
+For Each ws In ThisWorkbook.Worksheets
+    ws.Range("J:R").Value = ""
+    ws.Range("J:R").Interior.ColorIndex = 2
+Next ws
+End Sub
